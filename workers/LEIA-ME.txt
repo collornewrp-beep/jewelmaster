@@ -1,0 +1,12 @@
+Esta pasta ainda está vazia de propósito.
+
+Os "Workers" da Cloudflare são pequenas peças de servidor que este
+sistema vai precisar mais adiante, para duas coisas que não podem ser
+feitas com segurança só no código que roda no navegador:
+
+1. Upload de fotos de produto (Cadastro de Produtos — Sessão 3).
+2. Criação de login de vendedora pelo painel da Admin (Cadastro de
+   Vendedoras — Sessão 2).
+
+Cada um desses Workers será criado e publicado na sessão de código
+correspondente. Até lá, esta pasta fica só com este arquivo de aviso.

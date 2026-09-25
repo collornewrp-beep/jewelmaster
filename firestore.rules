@@ -1,0 +1,57 @@
+// firestore.rules — Regras de segurança do Firestore (JewelMaster)
+//
+// ⚠️ ATENÇÃO: este arquivo, sozinho, NÃO faz nada. Ele só existe aqui
+// como cópia local. Para valer de verdade, o conteúdo precisa ser colado
+// manualmente no Firebase Console (Firestore Database > aba "Regras" >
+// Publicar). Ver o passo a passo no relatório final desta sessão — esse
+// passo é o mais importante de toda a configuração.
+//
+// Política geral: tudo bloqueado por padrão. Cada sessão que criar uma
+// coleção nova deve liberar essa coleção aqui, e republicar.
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Função auxiliar: true se quem está fazendo a requisição está
+    // logada E o documento users/{uid} dela diz role == "admin".
+    function ehAdminLogado() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // ---------- Coleção "users" (liberada nesta sessão) ----------
+    match /users/{uid} {
+
+      // Qualquer pessoa logada pode ler o PRÓPRIO documento
+      // (o id do documento tem que ser igual ao uid dela no Authentication).
+      allow read: if request.auth != null && request.auth.uid == uid;
+
+      // A Admin pode ler o documento de qualquer usuária (ex: lista de
+      // vendedoras, telas futuras).
+      allow read: if ehAdminLogado();
+
+      // A pessoa pode ATUALIZAR o próprio documento, mas SOMENTE o campo
+      // "theme" — nenhum outro campo (principalmente não "role", que
+      // controla permissão). Isso é verificado conferindo que a única
+      // chave alterada entre o documento antigo e o novo é "theme".
+      allow update: if request.auth != null &&
+        request.auth.uid == uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['theme']);
+
+      // Nada de criar ou apagar usuários direto do app nesta sessão —
+      // isso é feito por um Worker (peça de servidor), a partir da
+      // Sessão 2 (Cadastro de Vendedoras).
+      allow create, delete: if false;
+    }
+
+    // ---------- Todas as outras coleções: bloqueadas nesta sessão ----------
+    // (products, sellers, bags, bagItems, sales, clients, receivables,
+    // settlements — cada uma será liberada na sessão que a criar.)
+    match /{colecaoQualquer}/{documentoQualquer} {
+      allow read, write: if false;
+    }
+  }
+}
